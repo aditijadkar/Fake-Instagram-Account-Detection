@@ -1,12 +1,27 @@
 import instaloader
+import os
 
 def get_instagram_data(username):
-    loader = instaloader.Instaloader()
-    loader.context.do_not_save_session = True
-
-    print("Proceeding in anonymous mode. Note: Without credentials, requests may be rate-limited.")
+    # Check for login credentials.
+    IG_USERNAME = os.getenv("IG_USERNAME")
+    IG_PASSWORD = os.getenv("IG_PASSWORD")
+    if not (IG_USERNAME and IG_PASSWORD):
+        print("No login credentials provided. Please set IG_USERNAME and IG_PASSWORD environment variables.")
+        return {"error": "No login credentials provided. Please set IG_USERNAME and IG_PASSWORD environment variables for reliable analysis."}
 
     try:
+        loader = instaloader.Instaloader()
+        loader.context.do_not_save_session = True  # Use a fresh session for every call.
+
+        # Log in using provided credentials.
+        try:
+            loader.login(IG_USERNAME, IG_PASSWORD)
+            print(f"Logged in successfully as {IG_USERNAME}")
+        except Exception as login_error:
+            print("Login failed:", login_error)
+            return {"error": "Login failed. Please check your credentials."}
+
+        # Attempt to load the profile.
         profile = instaloader.Profile.from_username(loader.context, username)
 
         # Helper function to count numeric characters.
@@ -28,6 +43,7 @@ def get_instagram_data(username):
         description_length = len(bio)
         has_external_url = 1 if external_url.strip() else 0
         is_private = 1 if profile.is_private else 0
+        # Ensure the profile_pic key is always included.
         has_profile_pic = 1 if getattr(profile, "profile_pic_url", None) else 0
 
         data = {
@@ -59,3 +75,4 @@ if __name__ == "__main__":
     username = input("Enter Instagram username: ")
     result = get_instagram_data(username)
     print(result)
+
