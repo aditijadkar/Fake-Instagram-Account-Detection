@@ -13,11 +13,13 @@ def get_instagram_data(username):
         loader = instaloader.Instaloader()
         loader.context.do_not_save_session = False  # Enable saving/loading sessions
 
-        # Update the HTTP headers with a realistic User-Agent.
-        loader.context.http.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) ' +
-                          'AppleWebKit/537.36 (KHTML, like Gecko) ' +
-                          'Chrome/112.0.0.0 Safari/537.36'
+        # Update the session headers with a realistic User-Agent.
+        loader.context.session.headers.update({
+            'User-Agent': (
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+                'AppleWebKit/537.36 (KHTML, like Gecko) '
+                'Chrome/112.0.0.0 Safari/537.36'
+            )
         })
 
         # Attempt to load an existing session.
@@ -75,7 +77,6 @@ def get_instagram_data(username):
     except Exception as e:
         error_msg = str(e)
         print(f"Error: {error_msg}")
-        # Check for the common error when Instagram expects login and returns different HTML.
         if "Could not find \"window._sharedData\"" in error_msg:
             return {"error": "Login challenge required. Please complete the login challenge manually and try again."}
         if "Please wait a few minutes" in error_msg:
@@ -86,4 +87,3 @@ if __name__ == "__main__":
     username = input("Enter Instagram username: ")
     result = get_instagram_data(username)
     print(result)
-
