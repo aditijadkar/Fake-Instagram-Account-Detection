@@ -2,19 +2,22 @@ import instaloader
 import os
 
 def get_instagram_data(username):
-    # Check for login credentials.
+    # Retrieve login credentials from environment variables.
     IG_USERNAME = os.getenv("IG_USERNAME")
     IG_PASSWORD = os.getenv("IG_PASSWORD")
+    # This variable should contain the contents of a pre-saved session file.
+    INSTALOADER_SESSION = os.getenv("INSTALOADER_SESSION")
+    
     if not (IG_USERNAME and IG_PASSWORD):
         print("No login credentials provided. Please set IG_USERNAME and IG_PASSWORD environment variables.")
         return {"error": "No login credentials provided. Please set IG_USERNAME and IG_PASSWORD environment variables for reliable analysis."}
+    
+    loader = instaloader.Instaloader()
+    loader.context.do_not_save_session = False  # Enable saving/loading sessions
 
+    # Update the session headers with a realistic User-Agent.
+    # (Using the protected attribute _session as context.session is not available.)
     try:
-        loader = instaloader.Instaloader()
-        loader.context.do_not_save_session = False  # Enable saving/loading sessions
-
-        # Update the session headers with a realistic User-Agent.
-        # Use loader.context._session since loader.context.session is not available.
         loader.context._session.headers.update({
             'User-Agent': (
                 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
@@ -22,17 +25,36 @@ def get_instagram_data(username):
                 'Chrome/112.0.0.0 Safari/537.36'
             )
         })
+    except Exception as e:
+        print("Error updating headers:", e)
 
-        # Attempt to load an existing session.
+    # Define the path for the session file.
+    session_file = f"session-{IG_USERNAME}"
+
+    # If a session is provided via the environment variable, write it to a file.
+    if INSTALOADER_SESSION:
         try:
-            loader.load_session_from_file(IG_USERNAME)
-            print("Session loaded from file.")
+            with open(session_file, "w") as f:
+                f.write(INSTALOADER_SESSION)
+            print("Session file written from environment variable.")
         except Exception as e:
-            print("No session file found or failed to load session, logging in now.")
-            loader.login(IG_USERNAME, IG_PASSWORD)
-            loader.save_session_to_file()
-            print(f"Logged in successfully as {IG_USERNAME} and session saved.")
+            print("Failed to write session file from environment variable:", e)
 
+    # Attempt to load the session from file.
+    try:
+        loader.load_session_from_file(IG_USERNAME, sessionfile=session_file)
+        print("Session loaded from file.")
+    except Exception as e:
+        print("No valid session found or failed to load session, logging in now.")
+        try:
+            loader.login(IG_USERNAME, IG_PASSWORD)
+            loader.save_session_to_file(sessionfile=session_file)
+            print(f"Logged in successfully as {IG_USERNAME} and session saved.")
+        except Exception as login_error:
+            print("Login failed:", login_error)
+            return {"error": "Login failed. Please check your credentials or complete the login challenge manually."}
+
+    try:
         # Attempt to load the target profile.
         profile = instaloader.Profile.from_username(loader.context, username)
 
