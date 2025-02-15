@@ -14,7 +14,8 @@ def get_instagram_data(username):
         loader.context.do_not_save_session = False  # Enable saving/loading sessions
 
         # Update the session headers with a realistic User-Agent.
-        loader.context.session.headers.update({
+        # Use loader.context._session since loader.context.session is not available.
+        loader.context._session.headers.update({
             'User-Agent': (
                 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
                 'AppleWebKit/537.36 (KHTML, like Gecko) '
